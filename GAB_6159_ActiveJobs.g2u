@@ -1,0 +1,570 @@
+﻿Program.Sub.ScreenSU.Start
+Gui.frmActiveJobs..Create(BaseForm)
+Gui.frmActiveJobs..Caption("Active Jobs")
+Gui.frmActiveJobs..Size(16650,10605)
+Gui.frmActiveJobs..MinX(0)
+Gui.frmActiveJobs..MinY(0)
+Gui.frmActiveJobs..Position(0,0)
+Gui.frmActiveJobs..BackColor(-2147483633)
+Gui.frmActiveJobs..MousePointer(0)
+Gui.frmActiveJobs..Event(UnLoad,frmActiveJobs_UnLoad)
+Gui.frmActiveJobs..AlwaysOnTop(False)
+Gui.frmActiveJobs..FontName("Tahoma")
+Gui.frmActiveJobs..FontSize(8.25)
+Gui.frmActiveJobs..ControlBox(True)
+Gui.frmActiveJobs..MaxButton(True)
+Gui.frmActiveJobs..MinButton(True)
+Gui.frmActiveJobs..Moveable(True)
+Gui.frmActiveJobs..Sizeable(True)
+Gui.frmActiveJobs..ShowInTaskBar(True)
+Gui.frmActiveJobs..TitleBar(True)
+Gui.frmActiveJobs.GSGCActiveJobs.Create(GsGridControl)
+Gui.frmActiveJobs.GSGCActiveJobs.Size(16605,9240)
+Gui.frmActiveJobs.GSGCActiveJobs.Position(30,1050)
+Gui.frmActiveJobs.GSGCActiveJobs.Event(RowCellClick,GSGCActiveJobs_RowCellClick)
+Gui.frmActiveJobs.GSGCActiveJobs.Event(CellValueChanged,GsGCActiveJobs_CellValueChanged)
+Gui.frmActiveJobs.GSGCActiveJobs.Enabled(True)
+Gui.frmActiveJobs.GSGCActiveJobs.Visible(True)
+Gui.frmActiveJobs.GSGCActiveJobs.Zorder(0)
+Gui.frmActiveJobs.picGSSLogo.Create(PictureBox)
+Gui.frmActiveJobs.picGSSLogo.Size(4125,960)
+Gui.frmActiveJobs.picGSSLogo.Position(6345,45)
+Gui.frmActiveJobs.picGSSLogo.Enabled(True)
+Gui.frmActiveJobs.picGSSLogo.Visible(True)
+Gui.frmActiveJobs.picGSSLogo.Zorder(0)
+Gui.frmActiveJobs.lblStatus.Create(Label,"Loading Work Orders....",False,4110,255,0,90,105,True,0,"Arial",8,-2147483633,0,0)
+Gui.frmActiveJobs.lblStatus.BorderStyle(0)
+Gui.frmActiveJobs.optView.Create(Option)
+Gui.frmActiveJobs.optView.Size(795,270)
+Gui.frmActiveJobs.optView.Position(15810,60)
+Gui.frmActiveJobs.optView.Caption("View")
+Gui.frmActiveJobs.optView.BackColor(15790320)
+Gui.frmActiveJobs.optView.ForeColor(0)
+Gui.frmActiveJobs.optView.Enabled(True)
+Gui.frmActiveJobs.optView.Visible(True)
+Gui.frmActiveJobs.optView.Zorder(0)
+Gui.frmActiveJobs.optView.FontName("Tahoma")
+Gui.frmActiveJobs.optView.FontSize(8.25)
+Gui.frmActiveJobs.optEdit.Create(Option)
+Gui.frmActiveJobs.optEdit.Enabled(False)
+Gui.frmActiveJobs.optEdit.Size(690,285)
+Gui.frmActiveJobs.optEdit.Position(15810,345)
+Gui.frmActiveJobs.optEdit.Caption("Edit")
+Gui.frmActiveJobs.optEdit.Visible(True)
+Gui.frmActiveJobs.optEdit.Zorder(0)
+Gui.frmActiveJobs.optEdit.FontName("Tahoma")
+Gui.frmActiveJobs.optEdit.FontSize(8.25)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+	V.Global.bLoadData.Declare
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	V.Local.sIcon.Declare(String)
+	V.Local.bEdit.Declare(Boolean)
+	V.Local.sGssLogo.Declare
+
+	F.Intrinsic.String.Build("{0}\GAB\GAS\gss2.ico",V.Caller.PluginsDir,v.Local.sIcon)
+	F.Intrinsic.String.Build("{0}\GAB\GAS\GAB_GSS_Logo_Green_Dash.png",V.Caller.PluginsDir,v.Local.sGssLogo)
+	Gui.frmActiveJobs.picGSSLogo.Picture(v.Local.sGssLogo)
+	Gui.frmActiveJobs..Icon(v.Local.sIcon)
+
+	F.Intrinsic.Control.CallSub(SetAnchors)
+	F.Intrinsic.Control.CallSub(SetContextMenus)
+
+	Gui.frmActiveJobs.optView.Value(True)
+
+	F.Global.Security.IsInGroup(v.Caller.User,"EditWO",v.Local.bEdit)
+	F.Intrinsic.Control.If(V.Local.bEdit)
+		Gui.frmActiveJobs.optEdit.Enabled(1)
+	F.Intrinsic.Control.EndIf
+
+	F.ODBC.Connection!con.OpenCompanyConnection(500)
+
+	Gui.frmActiveJobs..Show
+	F.Intrinsic.Control.CallSub(LoadDTActiveJobs)
+	F.Intrinsic.Control.CallSub(Deserialize)
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.frmActiveJobs_UnLoad.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	F.Intrinsic.Control.If(V.Global.bLoadData)
+		F.Intrinsic.Control.CallSub(Serialize)
+	F.Intrinsic.Control.EndIf
+	
+	F.ODBC.Connection!con.Close
+	F.Intrinsic.Control.End
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.frmActiveJobs_UnLoad.End
+
+Program.Sub.SetContextMenus.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	Gui.frmActiveJobs..ContextMenuCreate("ctxActiveJobs")
+	Gui.frmActiveJobs.GSGCActiveJobs.ContextMenuAttach("ctxActiveJobs")
+	Gui.frmActiveJobs..ContextMenuAddItem("ctxActiveJobs","Refresh",0,"Refresh")
+	Gui.frmActiveJobs..ContextMenuAddItem("ctxActiveJobs","Export",0,"Export")
+	Gui.frmActiveJobs..ContextMenuAddItem("ctxActiveJobs","ResetColumns",0,"Reset Columns")
+	Gui.frmActiveJobs..ContextMenuSetItemEventHandler("ctxActiveJobs","Refresh","cmdRefresh_Click")
+	Gui.frmActiveJobs..ContextMenuSetItemEventHandler("ctxActiveJobs","Export","Export")
+	Gui.frmActiveJobs..ContextMenuSetItemEventHandler("ctxActiveJobs","ResetColumns","ResetGridColumns")
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.SetContextMenus.End
+
+Program.Sub.cmdRefresh_Click.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	F.Intrinsic.Control.If(V.Global.bLoadData)
+		F.Intrinsic.Control.CallSub(Serialize)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.CallSub(LoadDTActiveJobs)
+	F.Intrinsic.Control.CallSub(Deserialize)
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.cmdRefresh_Click.End
+
+Program.Sub.Export.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	V.Local.bExcel.Declare
+	V.Local.sExt.Declare
+	V.Local.sControl.Declare
+	V.Local.sFileExport.Declare
+	V.Local.bFileLocked.Declare
+	V.Local.sMsg.Declare
+	
+	F.Intrinsic.Control.SelectCase(V.Args.MenuName)
+		F.Intrinsic.Control.Case("CTXACTIVEJOBS")
+			V.Local.sControl.Set("GSGCActiveJobs")
+	F.Intrinsic.Control.EndSelect
+	
+	F.Automation.MSExcel.CheckPresence(V.Local.bExcel)
+	F.Intrinsic.Control.If(V.Local.bExcel)
+		V.Local.sExt.Set("xlsx")
+	F.Intrinsic.Control.Else
+		V.Local.sExt.Set("csv")
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.String.Build("{0}\GAB_6159_{1}_Export.{2}",V.Caller.LocalGssTempDir,V.Local.sControl,V.Local.sExt,V.Local.sFileExport)
+	F.Intrinsic.File.IsFileLocked(V.Local.sFileExport,V.Local.bFileLocked)
+	F.Intrinsic.Control.If(V.Local.bFileLocked)
+		F.Intrinsic.String.Build("File is already open. Please close and export again.{0}File: {1}",V.Ambient.NewLine,V.Local.sFileExport,V.Local.sMsg)
+		F.Intrinsic.UI.Msgbox(V.Local.sMsg,"File In Use")
+	F.Intrinsic.Control.Else
+		Gui.frmActiveJobs.[V.Local.sControl].Export(V.Local.sFileExport,V.Local.sExt)
+		F.Intrinsic.Task.ShellExec(0,"",V.Local.sFileExport,"","",1)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.Export.End
+
+Program.Sub.ResetGridColumns.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	F.Intrinsic.Control.SelectCase(V.Args.MenuName)
+		F.Intrinsic.Control.Case("CTXACTIVEJOBS")
+			F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GVACTIVEJOBS",6159,1000,False,"Serialize",False,0,-999.0,1/1/1980,12:00:00 AM,"")
+			
+	F.Intrinsic.Control.EndSelect
+	
+	V.Global.bLoadData.Set(False)
+	F.Intrinsic.Control.CallSub(cmdRefresh_Click)
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.ResetGridColumns.End
+
+Program.Sub.SetAnchors.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	' 1- top
+	' 2- Bottom
+	' 4- Left
+	' 8- Right
+
+	Gui.frmActiveJobs.picGSSLogo.Anchor(1)
+	Gui.frmActiveJobs.GSGCActiveJobs.Anchor(15)
+	Gui.frmActiveJobs.optView.Anchor(9)
+	Gui.frmActiveJobs.optEdit.Anchor(9)
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.SetAnchors.End
+
+Program.Sub.LoadDTActiveJobs.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	V.Local.iCnt.Declare
+	V.Local.sFilter.Declare
+	V.Local.sNextMachine.Declare
+	V.Local.sSelect.Declare
+
+	Gui.frmActiveJobs.lblStatus.Visible(True)
+
+	F.Intrinsic.Control.If(v.DataTable.dtActiveJobs.Exists)
+		F.Data.DataTable.close("dtActiveJobs")
+	F.Intrinsic.Control.EndIf
+	
+	V.Global.bLoadData.Set(True)
+
+	F.Data.DataTable.CreateFromSQL("dtActiveJobs","con","Select jh.Job, jh.Suffix, ' ' As Machine, ' ' As Employee, Cast(Null As Date) As Date_Sequence, Part, Description, Qty_Order, Qty_Completed, ' ' As Next_Machine, Date_Due As Due_Date, nts.Notes As Notes From V_Job_Header jh Left Join GAB_6159_JOB_NOTES nts On jh.Job = nts.Job And jh.Suffix = nts.Suffix Where Num_Hours <> 0 And Date_Closed = '1900-01-01' And jh.Job+jh.Suffix Not In (Select Job+Suffix From V_Ind_Lbr_Accts);",True)
+	
+	'Get Additional Information
+	F.Data.Datatable.CreateFromSQL("dtAddlInfo","con","Select Job+Suffix As AddlInfoKey, Job, Suffix, Seq, Machine, Empl, Name As Employee, Date_Sequence From V_Job_Detail jd Left Join V_Employee_Mstr em On jd.Empl = em.Employee Where Machine <> '' Order By Date_Sequence Desc;",True)
+	
+	'Add Key Column (JOBSUFFIX)
+	F.Data.Datatable.AddExpressionColumn("dtActiveJobs","ActiveJobsKey",String,"JOB+SUFFIX")
+	
+	'Load Machine
+	F.Data.Dictionary.CreateFromDataTable("dicMachine","dtAddlInfo","AddlInfoKey","Machine")
+	F.Data.Dictionary.SetDefaultReturn("dicMachine","")
+	F.Data.Datatable.FillFromDictionary("dtActiveJobs","dicMachine","ActiveJobsKey","Machine")
+	F.Data.Dictionary.Close("dicMachine")
+	
+	'Load Employee
+	F.Data.Dictionary.CreateFromDataTable("dicEmployee","dtAddlInfo","AddlInfoKey","Employee")
+	F.Data.Dictionary.SetDefaultReturn("dicEmployee","")
+	F.Data.Datatable.FillFromDictionary("dtActiveJobs","dicEmployee","ActiveJobsKey","Employee")
+	F.Data.Dictionary.Close("dicEmployee")
+	
+	'Load Date
+	F.Data.Dictionary.CreateFromDataTable("dicDateSeq","dtAddlInfo","AddlInfoKey","Date_Sequence")
+	F.Data.Dictionary.SetDefaultReturn("dicDateSeq","1/1/1900")
+	F.Data.Datatable.FillFromDictionary("dtActiveJobs","dicDateSeq","ActiveJobsKey","Date_Sequence")
+	F.Data.Dictionary.Close("dicDateSeq")
+	
+	'Close Additional Information
+	F.Data.Datatable.Close("dtAddlInfo")
+	
+	'Add InProcess flag
+	F.Data.Datatable.AddColumn("dtActiveJobs","InProcess",Boolean,False)
+	
+	'Jobs in process
+	F.Data.Datatable.CreateFromSQL("dtInProcess","con","Select * From V_Jobs_In_Process_G;",True)
+	
+	'Get Next Machine Information
+	F.Data.Datatable.CreateFromSQL("dtNextMachine","con","Select Job+Suffix As NextMachineKey, Job, Suffix, Seq, LMO, RTrim(Part) As Machine, Description, Flag_Closed, Date_Completed From V_Job_Operations Where Seq < '990000' And LMO In ('L','O') And Flag_Closed <> 'Y' Order By Job, Suffix, Seq;",True)
+	
+	'Load Next Machine
+	F.Intrinsic.Control.For(V.Local.iCnt,0,V.DataTable.dtActiveJobs.RowCount--,1)
+		'Set Next Machine
+		F.Intrinsic.String.Build("NextMachineKey = '{0}{1}'",V.DataTable.dtActiveJobs(V.Local.iCnt).JOB!FieldValTrim,V.DataTable.dtActiveJobs(V.Local.iCnt).SUFFIX!FieldValTrim,V.Local.sFilter)
+		F.Data.DataView.Create("dtNextMachine","dvNextMachine",22,V.Local.sFilter,"")
+		F.Data.DataView.ToString("dtNextMachine","dvNextMachine","Machine",""," / ",V.Local.sNextMachine)
+		F.Intrinsic.Control.If(V.Local.sNextMachine,<>,"")
+			F.Data.Datatable.SetValue("dtActiveJobs",V.Local.iCnt,"Next_Machine",V.Local.sNextMachine)
+		F.Intrinsic.Control.EndIf
+		F.Data.DataView.Close("dtNextMachine","dvNextMachine")
+		V.Local.sNextMachine.Set("")
+		'Set In Process
+		F.Intrinsic.String.Build("Job = '{0}' And Suffix = '{1}'",V.DataTable.dtActiveJobs(V.Local.iCnt).JOB!FieldValTrim,V.DataTable.dtActiveJobs(V.Local.iCnt).SUFFIX!FieldValTrim,V.Local.sFilter)
+		F.Data.Datatable.Select("dtInProcess",V.Local.sFilter,V.Local.sSelect)
+		F.Intrinsic.Control.If(V.Local.sSelect.IsNotNoReturn)
+			F.Data.Datatable.SetValue("dtActiveJobs",V.Local.iCnt,"InProcess",True)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Next(V.Local.iCnt)
+	F.Data.Datatable.Close("dtNextMachine")
+	
+	'Close Jobs In Process
+	F.Data.Datatable.Close("dtInProcess")
+	
+	'Remove Key Column
+	F.Data.Datatable.RemoveColumn("dtActiveJobs","ActiveJobsKey")
+	
+	F.Intrinsic.Control.CallSub(LoadGvActiveJobs)
+	Gui.frmActiveJobs.lblStatus.Visible(False)
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.LoadDTActiveJobs.End
+
+Program.Sub.LoadGvActiveJobs.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	V.Local.sColumn.Declare
+	
+	Gui.frmActiveJobs.GSGCActiveJobs.AddGridViewFromDataTable("gvActiveJobs","dtActiveJobs")
+	Gui.frmActiveJobs.GSGCActiveJobs.SuspendLayout()
+	Gui.frmActiveJobs.GSGCActiveJobs.setGridViewProperty("gvActiveJobs","MultiSelect",True)
+	Gui.frmActiveJobs.GSGCActiveJobs.setGridViewProperty("gvActiveJobs","Editable",True)
+	Gui.frmActiveJobs.GSGCActiveJobs.setGridViewProperty("gvActiveJobs","AllowSort",True)
+	Gui.frmActiveJobs.GSGCActiveJobs.setGridViewProperty("gvActiveJobs","AllowFilter",True)
+	Gui.frmActiveJobs.GSGCActiveJobs.setGridViewProperty("gvActiveJobs","OptionsDetailShowDetailTabs",False)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetGridViewProperty("gvActiveJobs","OptionsViewShowGroupPanel",True)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetGridViewProperty("gvActiveJobs","EnableAppearanceOddRow",True)
+	
+	V.Local.sColumn.Set("Job")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Visible",True)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Caption",V.Local.sColumn)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"MinWidth","75")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"HeaderHAlignment","Center")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"CellHAlignment","Center")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"CellForeColor","Blue")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"AllowEdit",False)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"ReadOnly",True)
+	
+	V.Local.sColumn.Set("Suffix")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Visible",True)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Caption",V.Local.sColumn)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"MinWidth","50")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"HeaderHAlignment","Center")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"CellHAlignment","Center")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"CellForeColor","Blue")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"AllowEdit",False)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"ReadOnly",True)
+	
+	V.Local.sColumn.Set("Machine")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Visible",True)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Caption",V.Local.sColumn)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"MinWidth","60")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"HeaderHAlignment","Center")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"CellHAlignment","Center")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"AllowEdit",False)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"ReadOnly",True)
+	
+	V.Local.sColumn.Set("Employee")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Visible",True)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Caption",V.Local.sColumn)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"MinWidth","105")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"HeaderHAlignment","Center")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"CellHAlignment","Center")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"AllowEdit",False)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"ReadOnly",True)
+	
+	V.Local.sColumn.Set("Date_Sequence")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Visible",True)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Caption","Seq. Date")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"MinWidth","85")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"HeaderHAlignment","Center")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"CellHAlignment","Center")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"DisplayCustomDatetime","d")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"AllowEdit",False)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"ReadOnly",True)
+	
+	V.Local.sColumn.Set("Part")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Visible",True)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Caption",V.Local.sColumn)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"MinWidth","125")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"HeaderHAlignment","Center")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"CellHAlignment","Left")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"AllowEdit",False)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"ReadOnly",True)
+	
+	V.Local.sColumn.Set("Description")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Visible",True)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Caption",V.Local.sColumn)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"MinWidth","175")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"HeaderHAlignment","Center")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"CellHAlignment","Left")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"AllowEdit",False)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"ReadOnly",True)
+	
+	V.Local.sColumn.Set("Qty_Order")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Visible",True)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Caption","Order Qty")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"MinWidth","85")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"HeaderHAlignment","Center")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"CellHAlignment","Center")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"AllowEdit",False)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"ReadOnly",True)
+	
+	V.Local.sColumn.Set("Qty_Completed")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Visible",True)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Caption","Compl. Qty.")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"MinWidth","85")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"HeaderHAlignment","Center")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"CellHAlignment","Center")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"AllowEdit",False)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"ReadOnly",True)
+	
+	V.Local.sColumn.Set("Next_Machine")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Visible",True)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Caption","Remaining Steps")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"MinWidth","175")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"HeaderHAlignment","Center")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"CellHAlignment","Left")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"AllowEdit",False)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"ReadOnly",True)
+	
+	V.Local.sColumn.Set("Due_Date")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Visible",True)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Caption","Due Date")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"MinWidth","85")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"HeaderHAlignment","Center")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"CellHAlignment","Center")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"DisplayCustomDatetime","d")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"AllowEdit",False)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"ReadOnly",True)
+	
+	V.Local.sColumn.Set("Notes")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Visible",True)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Caption",V.Local.sColumn)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"MinWidth","215")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"HeaderHAlignment","Center")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"CellHAlignment","Left")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"CellBackColor","LightYellow")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"AllowEdit",True)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"ReadOnly",False)
+	
+	V.Local.sColumn.Set("InProcess")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Visible",False)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"Caption","IP")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"MinWidth","35")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"HeaderHAlignment","Center")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"CellHAlignment","Center")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"AllowEdit",False)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetColumnProperty("gvActiveJobs",V.Local.sColumn,"ReadOnly",True)
+	
+	Gui.frmActiveJobs.GSGCActiveJobs.AddStyleFormatCondition("gvActiveJobs","InProcess","tagName1","Equal",True)
+	Gui.frmActiveJobs.GSGCActiveJobs.SetStyleFormatConditionProperty("gvActiveJobs","InProcess","tagName1","BackColor","LightGreen")
+	Gui.frmActiveJobs.GSGCActiveJobs.SetStyleFormatConditionProperty("gvActiveJobs","InProcess","tagName1","ApplyToRow",True)
+
+	Gui.frmActiveJobs.GSGCActiveJobs.ResumeLayout()
+	Gui.frmActiveJobs.GSGCActiveJobs.MainView("gvActiveJobs")
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.LoadGvActiveJobs.End
+
+Program.Sub.GSGCActiveJobs_RowCellClick.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	V.Local.sParams.Declare
+
+	F.Intrinsic.Control.SelectCase(v.Args.column)
+		F.Intrinsic.Control.CaseAny("Job","Suffix","JOB","SUFFIX")
+			F.Intrinsic.Control.If(V.Screen.frmActiveJobs!optEdit.Value)
+				F.Intrinsic.String.Build("{0}!*!{1}!*!O",V.DataTable.dtActiveJobs(V.Args.RowIndex).Job!FieldValTrim,V.DataTable.dtActiveJobs(V.Args.RowIndex).Suffix!FieldValTrim,V.Local.sParams)
+				F.Global.General.CallWrapperSync(2009,V.Local.sParams)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("7!*!{0}!*!{1}!*!A",V.DataTable.dtActiveJobs(V.Args.RowIndex).Job!FieldValTrim,V.DataTable.dtActiveJobs(V.Args.RowIndex).Suffix!FieldValTrim,V.Local.sParams)
+				F.Global.General.CallWrapperSync(450000,V.Local.sParams)
+			F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndSelect
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry	
+Program.Sub.GSGCActiveJobs_RowCellClick.End
+
+Program.Sub.GsGCActiveJobs_CellValueChanged.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	V.Local.sSQL.Declare
+
+	F.Intrinsic.Control.SelectCase(V.Args.Column)
+		F.Intrinsic.Control.CaseAny("Notes","NOTES")
+			F.Intrinsic.String.Build("Select * From GAB_6159_JOB_NOTES Where Job = '{0}' And Suffix = '{1}';",V.DataTable.dtActiveJobs(V.Args.RowIndex).Job!FieldValTrim,V.DataTable.dtActiveJobs(V.Args.RowIndex).Suffix!FieldValTrim,V.Local.sSQL)
+			F.ODBC.Connection!con.OpenRecordsetRW("rstNotes",V.Local.sSQL)
+			F.Intrinsic.Control.If(V.ODBC.con!rstNotes.EOF)
+				F.Intrinsic.String.Build("INSERT INTO GAB_6159_JOB_NOTES(JOB,SUFFIX,NOTES) VALUES('{0}','{1}','{2}');",V.DataTable.dtActiveJobs(V.Args.RowIndex).Job!FieldValTrim,V.DataTable.dtActiveJobs(V.Args.RowIndex).Suffix!FieldValTrim,V.Args.Value.PSQLFriendly,V.Local.sSQL)
+				F.ODBC.Connection!con.Execute(V.Local.sSQL)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("UPDATE GAB_6159_JOB_NOTES SET NOTES = '{0}' WHERE JOB = '{1}' AND SUFFIX = '{2}';",V.Args.Value.PSQLFriendly,V.DataTable.dtActiveJobs(V.Args.RowIndex).Job!FieldValTrim,V.DataTable.dtActiveJobs(V.Args.RowIndex).Suffix!FieldValTrim,V.Local.sSQL)
+				F.ODBC.Connection!con.Execute(V.Local.sSQL)
+			F.Intrinsic.Control.EndIf
+			F.ODBC.con!rstNotes.Close
+	F.Intrinsic.Control.EndSelect
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End 
+	F.Intrinsic.Control.EndTry
+Program.Sub.GsGCActiveJobs_CellValueChanged.End
+
+Program.Sub.Serialize.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	V.Local.sSerialize.Declare
+	
+	'gvActiveJobs
+	Gui.frmActiveJobs.GSGCActiveJobs.Serialize("gvActiveJobs",V.Local.sSerialize)
+	F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GVACTIVEJOBS",6159,1000,False,"Serialize",False,0,-999.0,1/1/1980,12:00:00 AM,V.Local.sSerialize)
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry
+Program.Sub.Serialize.End
+
+Program.Sub.Deserialize.Start
+	F.Intrinsic.Control.Try
+	V.Local.sError.Declare
+	
+	V.Local.sSerialize.Declare
+	
+	'gvActiveJobs
+	F.Global.Registry.ReadValue(V.Caller.User,V.Caller.CompanyCode,"gvActiveJobs",6159,1000,6,"",V.Local.sSerialize)
+	F.Intrinsic.Control.If(V.Local.sSerialize.Trim,<>,"")
+		Gui.frmActiveJobs.GSGCActiveJobs.Deserialize(V.Local.sSerialize)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.Catch
+		F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndTry
+Program.Sub.Deserialize.End
+
+Program.Sub.Comments.Start
+${$0$}$$}$$}$10/13/2016 10:09:03 AM$}$False
+${$5$}$2.0.0.0$}$2
+${$6$}$avaldez$}$20201105082133556$}$CBUu04veoT9NExad5Mkb3ylWEN0INN4Amt0RL1Efv7Oy20E+LXlIhulMfKDqscjvcPduXt0KHFY=
+Program.Sub.Comments.End
